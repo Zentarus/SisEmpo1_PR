@@ -54,6 +54,7 @@ int main(void)
     Init_CS () ;                        // MCLK = 8 MHz, SMCLK = 4 MHz
     Init_GPIO () ;
     Init_Display () ;
+    Init_Clock ();
 
 //    P1IE |= BIT1 ;                    // P1.1 Int enabled
 //    P1IES &= ~BIT1 ;                  // P1.1 Int raising edge
@@ -257,6 +258,7 @@ __interrupt void RSI_Pulso (void) {
     pulso_flag++;
     if (P1IV) {
 //...
+      P2OUT |= BIT0;
     }
     return ;
 }
