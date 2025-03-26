@@ -23,6 +23,7 @@
 #include "InitSystem.h"
 #include "display.h"
 #include "motor_asc.h"
+#include "clock.h"
 
 
 /******************************************************************************/
@@ -84,7 +85,6 @@ void Init_GPIO (void) ;
 static unsigned char LeerEntrada(void);
 static void GenerarSalida(unsigned char Salida);
 
-
 /******************************************************************************/
 /*                        Main y funciones                                    */
 /******************************************************************************/
@@ -95,11 +95,12 @@ Stop_Watchdog();                  // Stop watchdog timer
 
 Init_CS();                        // MCLK = 8 MHz, SMCLK = 4 MHz
 Init_GPIO();
-
+Init_Clock();
 Init_motor_asc();
 
 Salida = Led_EMG;
 estado = INICIAL;
+Timer_id T;
 
 
 while (1)
@@ -138,10 +139,19 @@ while (1)
     case PISO2:
         Salida = Led_P2;
         Orden_Ascensor = PARAR;
-        if (Entrada & B_P1)
+
+        if (Entrada & B_P1){
+            Remove_Timer(T);
             estado = P2_B_P1;
-        else if (Entrada & B_PB)
+        }
+        else if (Entrada & B_PB){
+            Remove_Timer(T);
             estado = P2_B_P0;
+        }
+        else if (Time_Out(T)){
+            Remove_Timer(T);
+            estado = P2_B_P0;
+        }
         break;
 
     // ------------------------------------------------ SUBIR
@@ -160,8 +170,10 @@ while (1)
 
     case P1_S_P2:
         Orden_Ascensor = SUBIR;
-        if (Entrada & FC2)
+        if (Entrada & FC2){
             estado = PISO2;
+            T = Set_Timer(5000, ONE_SHOT, 0);
+        }
         break;
 
     // ------------------------------------------------ BAJAR
@@ -252,5 +264,6 @@ static void GenerarSalida(unsigned char Salida)
   if (Salida & Led_EMG) P4OUT |= BIT4 ;
   else P4OUT &= ~BIT4 ;
 }
+
 
 
