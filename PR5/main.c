@@ -97,38 +97,38 @@ int main(void)
             // Automata
             automata();
 
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(2, programa);
 
-            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+            // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
             pulsadores_control();
 
-            // Gestión de los motores
+            // GestiÃ³n de los motores
             motores_control();
 
             marco_index++;
 
             break;
         case 1:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(0, paso);
 
             marco_index++;
             break;
         case 2:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(2, programa);
 
             marco_index++;
             break;
         case 3:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(0, paso);
 
             marco_index++;
             break;
         case 4:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(2, programa);
 
             marco_index++;
@@ -136,31 +136,31 @@ int main(void)
         case 5:
             automata();
 
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(0, paso);
 
-            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+            // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
             pulsadores_control();
 
             marco_index++;
             break;
         case 6:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(2, programa);
             marco_index++;
             break;
         case 7:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(0, paso);
             marco_index++;
             break;
         case 8:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(2, programa);
             marco_index++;
             break;
         case 9:
-            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
             display(0, paso);
             marco_index = 0;
             break;
@@ -176,7 +176,7 @@ void motores_control(void){
 }
 
 void pulsadores_control (void){
-    // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+    // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
             if (pulsador1){
                 if (programa != 0){
                     iniciar = 1;
