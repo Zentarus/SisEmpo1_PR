@@ -11,7 +11,7 @@
 /* version   : 1                                                              */
 /* fecha     : 22/02/2022                                                     */
 /* autor     : Jose Luis Villarroel                                           */
-/* descripcion : Practica PR4 (motor) (MSP430)                             */
+/* descripcion : Practica PR5-6 (lavadora) (MSP430)                             */
 /*                                                                            */
 /******************************************************************************/
 
@@ -21,6 +21,7 @@
 
 #include <msp430.h>
 #include "InitSystem.h"
+#include "display.h"
 #include "clock.h"
 #include "pwm.h"
 #include "encoder.h"
@@ -32,9 +33,23 @@
 /*                        Variables globales                                  */
 /******************************************************************************/
 
-enum {INICIAL, PROG1, PROG15, PROG14, PROG13, PROG12, PROG11, 
+enum {INICIAL, PROG1, PROG15, PROG14, PROG13, PROG12, PROG11,
     PROG2, PROG24, PROG23, PROG22, PROG21,
    } estado ;
+
+unsigned int siguiente, periodo = 10;
+unsigned int marco_index = 0;
+unsigned int programa = 0;
+unsigned int paso = 0;
+unsigned int iniciar = 0;
+unsigned int pulsador1 = 0;
+unsigned int pulsador5 = 0;
+unsigned int pulsador6 = 0;
+
+unsigned int periodo_motor = 100;
+float velocidad_real;
+unsigned int velocidad_periodica = 2048;
+
 
 // Variables globales de la practica
 
@@ -44,6 +59,10 @@ enum {INICIAL, PROG1, PROG15, PROG14, PROG13, PROG12, PROG11,
 
 void Init_GPIO (void) ;
 float convertir_a_rad_s(unsigned int);
+void automata (void) ;
+void pulsadores_control(void);
+void motores_control(void);
+Timer_id T;
 
 
 /******************************************************************************/
@@ -62,41 +81,151 @@ int main(void)
     Init_Encoder () ;
     Init_AD () ;
 
-    Init_Servos (periodo) ;
+    Init_Servos (periodo_motor) ;
 
-    P1IE |= BIT1 | BIT2 ;
+    P1IE |= BIT1 | BIT5 | BIT6;
     P1IES &= ~BIT1 ;
-    P1IES &= ~BIT2 ; 
+    P1IES &= ~BIT5 ;
+    P1IES &= ~BIT6 ;
 
     siguiente = Get_Time () ;
 
-    unsigned int valor_potenciometro;
 
-    
-    float velocidad_referencia;
+    while(1){
+        switch(marco_index){
+        case 0:
+            // Automata
+            automata();
+
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(2, programa);
+
+            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+            pulsadores_control();
+
+            // Gestión de los motores
+            motores_control();
+
+            marco_index++;
+
+            break;
+        case 1:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(0, paso);
+
+            marco_index++;
+            break;
+        case 2:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(2, programa);
+
+            marco_index++;
+            break;
+        case 3:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(0, paso);
+
+            marco_index++;
+            break;
+        case 4:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(2, programa);
+
+            marco_index++;
+            break;
+        case 5:
+            automata();
+
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(0, paso);
+
+            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+            pulsadores_control();
+
+            marco_index++;
+            break;
+        case 6:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(2, programa);
+            marco_index++;
+            break;
+        case 7:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(0, paso);
+            marco_index++;
+            break;
+        case 8:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(2, programa);
+            marco_index++;
+            break;
+        case 9:
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
+            display(0, paso);
+            marco_index = 0;
+            break;
+        }
+        siguiente += periodo;
+        delay_until (siguiente);
+    }
+
+}
+
+void motores_control(void){
+    Set_Value_10b(velocidad_periodica >> 2);
+}
+
+void pulsadores_control (void){
+    // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
+            if (pulsador1){
+                if (programa != 0){
+                    iniciar = 1;
+                    P2OUT |= BIT0;
+                }
+
+                pulsador1 = 0;
+            }
+
+            if (pulsador5){
+                if (iniciar == 0){
+
+                    // Encender led correspondiente
+                    P2OUT |= BIT1;
+                    P2OUT &= ~BIT2;
+
+                    programa = 1;
+                }
+                pulsador5 = 0;
+            }
+
+            if (pulsador6){
+                if (iniciar == 0){
+
+                    // Encender led correspondiente
+                    P2OUT |= BIT2;
+                    P2OUT &= ~BIT1;
+
+                    programa = 2;
+                }
+                pulsador6 = 0;
+            }
+}
+
+float convertir_a_rad_s(unsigned int valor_entero) {
+    return (valor_entero / 4096.0) * 8.0 - 4.0;
+}
 
 
-    Ti = Set_Timer(5000, ONE_SHOT, 0);
-    Ti_buffer = Set_Timer(1000, ONE_SHOT, 0);
-
-
-
-
-    while(1)
-    {
-
-// Codigo de la practica
-
-    //AUTOMATA
-
+void automata (void) {
     switch (estado)
     {
     case INICIAL:
-        //poner w = 0
-        if (/*P5 pulsado*/) {
+    paso = 0;
+    velocidad_periodica = 2048; // 0 rad/s;
+        if (programa == 1) {
             estado = PROG1;
         }
-        else if (/*P6 pulsado*/) {
+        else if (programa == 2) {
             estado = PROG2;
         }
         break;
@@ -104,55 +233,63 @@ int main(void)
     // ------------------------------------------------ PROGRAMA 1
 
     case PROG1:
-        //encender L2
-        if (/*P1 pulsado*/) {
-            //T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
+        if (iniciar) {
             estado = PROG15;
+            T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
         }
-        else if (/*P6 pulsado*/) {
-            //apagar L2
+        if (programa == 2) {
             estado = PROG2;
         }
         break;
 
     case PROG15:
-        //encender L1
-        //poner w = 1
-        if (/*timeout Timer de 4 segundos*/) {
-            //T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
+        paso = 5;
+        velocidad_periodica = 1536 + 1024; // 1 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
             estado = PROG14;
         }
         break;
 
     case PROG14:
-        //poner w = -1
-        if (/*timeout Timer de 4 segundos*/) {
-            //T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
+        paso = 4;
+        velocidad_periodica = 1536; // -1 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
             estado = PROG13;
         }
         break;
 
     case PROG13:
-        //poner w = 1
-        if (/*timeout Timer de 4 segundos*/) {
-            //T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
+        paso = 3;
+        velocidad_periodica = 1536 + 1024; // 1 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
             estado = PROG12;
         }
         break;
 
     case PROG12:
-        //poner w = 0
-        if (/*timeout Timer de 4 segundos*/) {
-            //T = Set_Timer(10000, ONE_SHOT, 0); //Timer de 10 segundos
+        paso = 2;
+        velocidad_periodica = 2048; // 0 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(10000, ONE_SHOT, 0); //Timer de 10 segundos
             estado = PROG11;
         }
         break;
 
     case PROG11:
-        //poner w = 3
-        if (/*timeout Timer de 10 segundos*/) {
-            //apagar L1, L2
-            //poner w = 0
+        paso = 1;
+        velocidad_periodica = 3584; // 3 rad/s
+        if (Time_Out(T)) {
+            programa = 0;
+            iniciar = 0;
+            P2OUT &= ~BIT1;
+            P2OUT &= ~BIT0;
             estado = INICIAL;
         }
         break;
@@ -161,84 +298,57 @@ int main(void)
     // ------------------------------------------------ PROGRAMA 2
 
     case PROG2:
-        //encender L3
-        if (/*P1 pulsado*/) {
+        if (iniciar) {
             estado = PROG24;
+            T = Set_Timer(2000, ONE_SHOT, 0); //Timer de 2 segundos
         }
-        else if (/*P5 pulsado*/) {
-            //apagar L3
+        if (programa == 1) {
             estado = PROG1;
         }
         break;
-
-   
-
-
-
-
-
-    }
-    
-
-}
-
-
-
-
-
-        //////////PARTE 1
-
-        // //valor entre 0 y 4096
-        // valor_potenciometro = Read_Value_Int_1();
-        // Set_Value_10b ((valor_potenciometro >> 2));
-
-        //////////PARTE 2
-
-        // //valor entre 0 y 4096
-        // valor_potenciometro = Read_Value_Int_1();
-
-
-        // // valor entre -4.0 y 4.0 rad/s
-        // velocidad_referencia = convertir_a_rad_s(valor_potenciometro);
-        // // velocidad real del motor en rad/s
-        // velocidad_real = velocity();
-
-        // voltaje_feedback = R(velocidad_referencia, velocidad_real);
-        // action(voltaje_feedback);
-
-        //////////PARTE 3
-        
-
-        Set_Value_10b(velocidad_periodica >> 2);
-
-        if (Time_Out(Ti)) {
-            Remove_Timer(Ti);
-            Ti = Set_Timer(5000, ONE_SHOT, 0);
-            velocidad_periodica += 1024;
-            if (velocidad_periodica == (3584+1024)) {
-                velocidad_periodica = 1536;
-            }
+    case PROG24:
+        velocidad_periodica = 1536 + 256; // -0.5 rad/s
+        paso = 4;
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(4000, ONE_SHOT, 0); //Timer de 4 segundos
+            estado = PROG23;
         }
+        break;
 
-        if (Time_Out(Ti_buffer)) {
-            Remove_Timer(Ti_buffer);
-            Ti_buffer = Set_Timer(1000, ONE_SHOT, 0);
-            buffer[indice_buffer] = velocity();
-            indice_buffer = (indice_buffer + 1) % 14 ;
+    case PROG23:
+        paso = 3;
+        velocidad_periodica = 1536 + 1024; // 1 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(2000, ONE_SHOT, 0); //Timer de 2 segundos
+            estado = PROG22;
         }
+        break;
 
+    case PROG22:
+        paso = 2;
+        velocidad_periodica = 2048; // 2 rad/s
+        if (Time_Out(T)) {
+            Remove_Timer(T);
+            T = Set_Timer(6000, ONE_SHOT, 0); //Timer de 6 segundos
+            estado = PROG21;
+        }
+        break;
 
-        siguiente += periodo ;
-        delay_until (siguiente) ;    
+    case PROG21:
+        paso = 1;
+        velocidad_periodica = 3584; // 3 rad/s
+        if (Time_Out(T)) {
+            programa = 0;
+            iniciar = 0;
+            P2OUT &= ~BIT2;
+            P2OUT &= ~BIT0;
+            estado = INICIAL;
+        }
+        break;
     }
 }
-
-float convertir_a_rad_s(unsigned int valor_entero) {
-    return (valor_entero / 4096.0) * 8.0 - 4.0;
-}
-
-
-
 
 
 void Init_GPIO (void) {
@@ -284,6 +394,20 @@ void Init_GPIO (void) {
                                             // to activate previously configured port settings
 }
 
-
+#pragma vector = PORT1_VECTOR
+__interrupt void Pulso (void) {
+    if (P1IV){
+        if (P1IN & BIT1){
+            pulsador1 = 1;
+        }
+        if (P1IN & BIT5){
+            pulsador5 = 1;
+        }
+        if (P1IN & BIT6){
+            pulsador6 = 1;
+        }
+    }
+    return;
+}
 
 
