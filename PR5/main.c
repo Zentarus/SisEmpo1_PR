@@ -50,6 +50,10 @@ unsigned int periodo_motor = 100;
 float velocidad_real;
 unsigned int velocidad_periodica = 2048;
 
+unsigned int pulso_automata = 0;
+unsigned int pulso_motor = 0;
+unsigned int pulso_visualizacion = 0;
+
 
 // Variables globales de la practica
 
@@ -58,10 +62,12 @@ unsigned int velocidad_periodica = 2048;
 /******************************************************************************/
 
 void Init_GPIO (void) ;
+void Init_Pulso(void);
 float convertir_a_rad_s(unsigned int);
 void automata (void) ;
 void pulsadores_control(void);
 void motores_control(void);
+void visualizacion_pulso_reg(void);
 Timer_id T;
 
 
@@ -81,6 +87,7 @@ int main(void)
     Init_Encoder () ;
     Init_AD () ;
 
+    Init_Pulso ();
     Init_Servos (periodo_motor) ;
 
     P1IE |= BIT1 | BIT5 | BIT6;
@@ -92,43 +99,46 @@ int main(void)
 
 
     while(1){
+
+        visualizacion_pulso_reg();
+
         switch(marco_index){
         case 0:
             // Automata
             automata();
 
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(2, programa);
 
-            // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
+            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
             pulsadores_control();
 
-            // GestiÃ³n de los motores
+            // Gestión de los motores
             motores_control();
 
             marco_index++;
 
             break;
         case 1:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(0, paso);
 
             marco_index++;
             break;
         case 2:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(2, programa);
 
             marco_index++;
             break;
         case 3:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(0, paso);
 
             marco_index++;
             break;
         case 4:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(2, programa);
 
             marco_index++;
@@ -136,31 +146,31 @@ int main(void)
         case 5:
             automata();
 
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(0, paso);
 
-            // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
+            // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
             pulsadores_control();
 
             marco_index++;
             break;
         case 6:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(2, programa);
             marco_index++;
             break;
         case 7:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(0, paso);
             marco_index++;
             break;
         case 8:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(2, programa);
             marco_index++;
             break;
         case 9:
-            // Visualizaciï¿½n de segmentos para programa y paso de ejecuciï¿½n
+            // Visualizaci�n de segmentos para programa y paso de ejecuci�n
             display(0, paso);
             marco_index = 0;
             break;
@@ -172,11 +182,32 @@ int main(void)
 }
 
 void motores_control(void){
+
+    if (pulso_motor) {
+        pulso_motor = 0;
+        P4OUT &= ~BIT7;
+    }
+    else {
+        pulso_motor = 1;
+        P4OUT |= BIT7;
+    }
+
     Set_Value_10b(velocidad_periodica >> 2);
 }
 
+void visualizacion_pulso_reg(void) {
+    if (pulso_visualizacion) {
+        pulso_visualizacion = 0;
+        P4OUT &= ~BIT5;
+    }
+    else {
+        pulso_visualizacion = 1;
+        P4OUT |= BIT5;
+    }
+}
+
 void pulsadores_control (void){
-    // Gestiï¿½n de pulsadores (control discreto) y Resetear pulsadores
+    // Gesti�n de pulsadores (control discreto) y Resetear pulsadores
             if (pulsador1){
                 if (programa != 0){
                     iniciar = 1;
@@ -217,6 +248,16 @@ float convertir_a_rad_s(unsigned int valor_entero) {
 
 
 void automata (void) {
+
+    if (pulso_automata) {
+        pulso_automata = 0;
+        P4OUT &= ~BIT6;
+    }
+    else {
+        pulso_automata = 1;
+        P4OUT |= BIT6;
+    }
+
     switch (estado)
     {
     case INICIAL:
@@ -351,6 +392,17 @@ void automata (void) {
 }
 
 
+ void Init_Pulso(void) {
+    
+    P4DIR |= BIT5 | BIT6 | BIT7;          // P4.0, P4.1, P4.2 output (configurar como salidas digitales)
+    P4OUT &= ~(BIT5 | BIT6 | BIT7);         //inicializar en bajo
+
+ }
+
+
+ //para ponerlo a alto: P4OUT |= BIT0;
+
+
 void Init_GPIO (void) {
     // P2.6,P2.7: XIN, XOUT, reloj externo
     // P1.0 salida, led de la tarjeta
@@ -409,5 +461,3 @@ __interrupt void Pulso (void) {
     }
     return;
 }
-
-
